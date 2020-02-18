@@ -121,6 +121,7 @@ export default {
         .getAllChapterVideoList(id)
         .then(res => {
           console.log(res);
+          console.log(res);
           this.chapterVideoList = res.data.items;
         })
         .catch(err => {
