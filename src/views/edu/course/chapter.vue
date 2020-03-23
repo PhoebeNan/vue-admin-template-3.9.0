@@ -67,6 +67,32 @@
         <el-form-item label="小节排序">
           <el-input-number v-model="video.sort" :min="0" controls-position="right" />
         </el-form-item>
+
+        <!-- 添加视频上传到阿里云服务器 -->
+        <el-form-item label="上传视频">
+          <el-upload
+            :on-success="handleVodUploadSuccess"
+            :on-remove="handleVodRemove"
+            :before-remove="beforeVodRemove"
+            :on-exceed="handleUploadExceed"
+            :file-list="fileList"
+            :action="BASE_API+'/vidservice/vod/upload'"
+            :limit="1"
+            class="upload-demo"
+          >
+            <el-button size="small" type="primary">上传视频</el-button>
+            <el-tooltip placement="right-end">
+              <div slot="content">
+                最大支持1G，
+                <br />支持3GP、ASF、AVI、DAT、DV、FLV、F4V、
+                <br />GIF、M2T、M4V、MJ2、MJPEG、MKV、MOV、MP4、
+                <br />MPE、MPG、MPEG、MTS、OGG、QT、RM、RMVB、
+                <br />SWF、TS、VOB、WMV、WEBM 等视频格式上传
+              </div>
+              <i class="el-icon-question" />
+            </el-tooltip>
+          </el-upload>
+        </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
         <el-button @click="dialogVideoFormVisible = false">取 消</el-button>
@@ -95,19 +121,48 @@ const dialogVideo = {
 export default {
   data() {
     return {
-      id: "",//此id表示课程id  即courseId
+      id: "", //此id表示课程id  即courseId
       chapterVideoList: [], //存储章节和小节的数组
       dialogChapterFormVisible: false, //添加章节的表单
       dialogVideoFormVisible: false, //添加小节的表单
       chapter: dialogChapter,
-      video: dialogVideo
+      video: dialogVideo,
+
+      BASE_API: process.env.BASE_API, // 接口API地址
+      fileList: [] //上传文件列表
     };
   },
   created() {
     this.init();
     this.getChapterVideoListsById(this.id);
   },
+
   methods: {
+    //删除阿里云视频之前
+    beforeVodRemove(file, fileList) {
+      return this.$confirm(`确定移除 ${file.name}？`);
+    },
+    //确认删除阿里云视频
+    handleVodRemove(file, fileList) {
+      console.log('====================='+file);
+      video.removeAliyunVideo(this.video.videoSourceId).then(response => {
+        console.log('=====================response'+response);
+        this.$message({
+          type: "success",
+          message: "删除视频成功！"
+        });
+      });
+    },
+
+    //成功回调
+    handleVodUploadSuccess(response, file, fileList) {
+      this.video.videoSourceId = response.data.videoId;
+    },
+    //视图上传多于一个视频
+    handleUploadExceed(files, fileList) {
+      this.$message.warning("想要重新上传视频，请先删除已上传的视频");
+    },
+
     //进行初始化操作
     init() {
       //获取路径里面id   //此id表示课程id
@@ -137,7 +192,7 @@ export default {
     },
     //下一步
     next() {
-      this.$router.push({ path: "/course/publish/"+ this.id });
+      this.$router.push({ path: "/course/publish/" + this.id });
     },
     //添加和修改章节表单
     saveOrUpdate() {
@@ -217,14 +272,14 @@ export default {
         .then(res => {
           //调用方法进行删除
           //return 表示后面then还会执行
-          console.log(res);//res值为confirm
+          console.log(res); //res值为confirm
           return chapter.deleteChapter(chapterId);
         })
         .then(res => {
           //刷新整个页面
           console.log(this.id); //课程courseId
-          console.log('====zzz======');
-          console.log(chapterId);//课程chapterId
+          console.log("====zzz======");
+          console.log(chapterId); //课程chapterId
           console.log(res); //res中data的值为空
           this.getChapterVideoListsById(this.id);
 
@@ -291,6 +346,9 @@ export default {
           this.getChapterVideoListsById(this.id);
           //4.清空弹框的内容
           this.video = { ...dialogChapter };
+
+          //5.清空之前添加的视频列表
+          this.fileList = [];
         })
         .catch(err => {
           this.$message({
@@ -356,7 +414,7 @@ export default {
         .then(() => {
           //刷新整个页面
           console.log(videoId);
-          
+
           this.getChapterVideoListsById(this.id);
 
           console.log("删除成功!");
