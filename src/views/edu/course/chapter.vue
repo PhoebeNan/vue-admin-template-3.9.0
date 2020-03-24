@@ -115,7 +115,9 @@ const dialogVideo = {
   title: "",
   sort: 1,
   courseId: "",
-  chapterId: ""
+  chapterId: "",
+  videoSourceId: "",
+  videoOriginalName: ""
 }; //添加弹框小节的对象
 
 export default {
@@ -140,23 +142,28 @@ export default {
   methods: {
     //删除阿里云视频之前
     beforeVodRemove(file, fileList) {
-      return this.$confirm(`确定移除 ${file.name}？`);
+      return this.$confirm(`您确定要移除 ${file.name}？`);
     },
     //确认删除阿里云视频
     handleVodRemove(file, fileList) {
-      console.log('====================='+file);
+      console.log("=====================" + file);
       video.removeAliyunVideo(this.video.videoSourceId).then(response => {
-        console.log('=====================response'+response);
-        this.$message({
-          type: "success",
-          message: "删除视频成功！"
-        });
+        console.log("=====================response" + response);
+
+        this.video.videoSourceId = "";
+        this.video.videoOriginalName = "";
+        (this.fileList = []),
+          this.$message({
+            type: "success",
+            message: "删除视频成功！"
+          });
       });
     },
 
     //成功回调
     handleVodUploadSuccess(response, file, fileList) {
       this.video.videoSourceId = response.data.videoId;
+      this.video.videoOriginalName = file.name;
     },
     //视图上传多于一个视频
     handleUploadExceed(files, fileList) {
@@ -397,6 +404,10 @@ export default {
         this.video = res.data.eduVideo;
         //弹框打开
         this.dialogVideoFormVisible = true;
+        //把视频文件名称设置到fileList中
+        if(this.video.videoSourceId!=''){
+          this.fileList = [{ name: this.video.videoOriginalName }];
+        }
       });
     },
     //删除小节
